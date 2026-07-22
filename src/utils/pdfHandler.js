@@ -19,8 +19,9 @@ export const generateAndDownloadReceiptPDF = async (transaksi, qrCodeBase64) => 
     let y = 65;
     transaksi.items.forEach((item, index) => {
         doc.text(`${index + 1}. ${item.nama}`, 14, y);
-        doc.text(`${item.quantity} x Rp ${Number(item.harga).toLocaleString('id-ID')}`, 25, y + 6);
-        const subtotal = item.quantity * item.harga;
+        const qty = item.scanQty || item.quantity || 1;
+        doc.text(`${qty} x Rp ${Number(item.harga).toLocaleString('id-ID')}`, 25, y + 6);
+        const subtotal = qty * item.harga;
         doc.text(`Rp ${subtotal.toLocaleString('id-ID')}`, 140, y + 6);
         y += 15;
     });

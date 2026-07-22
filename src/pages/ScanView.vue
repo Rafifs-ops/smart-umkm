@@ -23,8 +23,48 @@
       </div>
 
       <h2 class="mb-6 text-2xl font-bold text-center text-white">
-        Scanner Pintar
+        Kasir Pintar
       </h2>
+
+      <div class="relative w-full mb-6">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari nama atau ID produk..."
+          class="w-full px-5 py-4 text-white placeholder-green-200/70 transition-all bg-green-900/50 border rounded-2xl border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.15)] focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_25px_rgba(6,182,212,0.4)]"
+        />
+        <div
+          v-if="searchQuery && searchResults.length > 0"
+          class="absolute z-10 w-full mt-2 overflow-hidden bg-green-900/95 border border-cyan-500/30 rounded-xl shadow-2xl backdrop-blur-xl"
+        >
+          <div
+            v-for="item in searchResults"
+            :key="item.id"
+            @click="tambahProdukKeTransaksi(item)"
+            class="flex items-center justify-between p-4 border-b border-green-500/20 cursor-pointer hover:bg-cyan-500/20 transition-colors last:border-b-0"
+          >
+            <div>
+              <p class="font-bold text-white">{{ item.nama }}</p>
+              <p class="text-xs text-green-200 font-mono">ID: {{ item.id }}</p>
+            </div>
+            <p class="font-semibold text-cyan-300">
+              Rp {{ item.harga.toLocaleString("id-ID") }}
+            </p>
+          </div>
+        </div>
+        <div
+          v-else-if="searchQuery && searchResults.length === 0"
+          class="absolute z-10 w-full p-4 mt-2 text-center text-green-200 bg-green-900/95 border border-red-500/30 rounded-xl shadow-2xl backdrop-blur-xl"
+        >
+          Produk tidak ditemukan
+        </div>
+      </div>
+
+      <div class="flex items-center w-full my-6">
+        <div class="flex-1 h-px bg-green-500/30"></div>
+        <span class="px-4 text-sm text-green-200/70 font-medium">ATAU</span>
+        <div class="flex-1 h-px bg-green-500/30"></div>
+      </div>
 
       <button
         @click="mulaiScan"
@@ -114,21 +154,64 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { CapacitorBarcodeScanner } from "@capacitor/barcode-scanner";
 import { useProducts } from "../composables/useProduct";
 import { usePenjualan } from "../composables/usePenjualan";
 
 const router = useRouter();
-const { getProduct, addProduct } = useProducts();
+const { getProduct, addProduct, productList, loadProducts } = useProducts();
 const { simpanTransaksi } = usePenjualan();
 
 const barangDitemukan = ref([]);
+const searchQuery = ref("");
+
+onMounted(() => {
+  loadProducts();
+});
+
+const searchResults = computed(() => {
+  if (!searchQuery.value) return [];
+  const query = searchQuery.value.toLowerCase();
+  return productList.value.filter(p => 
+    p.nama.toLowerCase().includes(query) || 
+    p.id.toLowerCase().includes(query)
+  ).slice(0, 5);
+});
 
 // State untuk menyimpan total kalkulasi
 const totalPenjualan = ref(0);
 const totalKeuntungan = ref(0);
+
+const tambahProdukKeTransaksi = async (produkData) => {
+    // Buat salinan agar tidak mutasi referensi dari searchResults / db secara langsung
+    const produk = { ...produkData };
+
+    const existingIndex = barangDitemukan.value.findIndex(
+        (p) => p.id === produk.id,
+    );
+
+    if (existingIndex !== -1) {
+        barangDitemukan.value[existingIndex].scanQty++;
+    } else {
+        produk.scanQty = 1;
+        barangDitemukan.value.push(produk);
+    }
+
+    // Kurangi stok di database
+    const updatedProduk = { ...produkData };
+    updatedProduk.quantitas = (updatedProduk.quantitas || 0) - 1;
+    await addProduct(updatedProduk);
+
+    const modalHpp = produk.hpp || 0;
+    const profitItem = produk.harga - modalHpp;
+
+    totalPenjualan.value += produk.harga;
+    totalKeuntungan.value += profitItem;
+    
+    searchQuery.value = "";
+};
 
 const mulaiScan = async () => {
   try {
@@ -144,32 +227,7 @@ const mulaiScan = async () => {
       const produk = await getProduct(scannedId);
 
       if (produk) {
-        // Cek apakah produk sudah ada di list
-        const existingIndex = barangDitemukan.value.findIndex(
-          (p) => p.id === produk.id,
-        );
-
-        if (existingIndex !== -1) {
-          barangDitemukan.value[existingIndex].scanQty++;
-        } else {
-          produk.scanQty = 1;
-          barangDitemukan.value.push(produk);
-        }
-
-        // Kurangi stok di database
-        const updatedProduk = { ...produk };
-        updatedProduk.quantitas = (updatedProduk.quantitas || 0) - 1;
-        // Buang properti scanQty sebelum disimpan ke DB (opsional, untuk kebersihan)
-        delete updatedProduk.scanQty;
-        await addProduct(updatedProduk);
-
-        // Antisipasi jika produk disave sebelum fitur HPP dibuat (nilainya undefined)
-        const modalHpp = produk.hpp || 0;
-        const profitItem = produk.harga - modalHpp;
-
-        // Tambahkan ke kalkulasi total
-        totalPenjualan.value += produk.harga;
-        totalKeuntungan.value += profitItem;
+        await tambahProdukKeTransaksi(produk);
       } else {
         alert(`Produk belum terdaftar. Silakan masukkan data baru.`);
         router.push({ path: "/input", query: { newId: scannedId } });

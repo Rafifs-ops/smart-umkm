@@ -23,11 +23,11 @@
                             class="flex justify-between items-start text-sm">
                             <div>
                                 <p class="font-bold text-slate-800">{{ item.nama }}</p>
-                                <p class="text-slate-500">{{ item.quantity }} x Rp {{
+                                <p class="text-slate-500">{{ Number(item.scanQty || item.quantity || 1) }} x Rp {{
                                     Number(item.harga).toLocaleString('id-ID') }}</p>
                             </div>
                             <p class="font-bold text-slate-900">Rp {{ (Number(item.harga) *
-                                item.quantity).toLocaleString('id-ID') }}</p>
+                                Number(item.scanQty || item.quantity || 1)).toLocaleString('id-ID') }}</p>
                         </div>
                     </div>
                     <div class="pt-4 border-t border-slate-200 border-dashed flex justify-between items-center">
@@ -98,8 +98,9 @@ onMounted(async () => {
     if (id) {
         transaksi.value = await db.penjualan.get(id);
         // Generate QR Code di sini setelah data transaksi di-fetch
-        if (transaksi.value && transaksi.value.tokenNota) {
-            const urlTujuan = `https://rafifs-ops.github.io/note-viewer-smartpos/?t=${transaksi.value.tokenNota}`;
+        if (transaksi.value) {
+            const token = transaksi.value.tokenNota || `TRX-${id}`;
+            const urlTujuan = `https://rafifs-ops.github.io/note-viewer-smartpos/?t=${token}`;
             qrCodeBase64.value = await QRCode.toDataURL(urlTujuan, { margin: 4, width: 500, errorCorrectionLevel: 'L', scale: 4 });
         }
     }

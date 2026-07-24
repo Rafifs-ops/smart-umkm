@@ -1,43 +1,85 @@
 <template>
-    <div
-        class="min-h-screen bg-gradient-to-r from-green-400 via-green-500 to-green-600 pb-10 sm:py-12 flex flex-col items-center">
-        <div class="w-full sm:max-w-3xl px-5 sm:px-0 pt-6 sm:pt-0">
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold text-white tracking-tight">Panduan Aplikasi</h1>
-                <p class="text-sm text-white mt-1.5">Definisi dan istilah seputar keuangan bisnis.</p>
-            </div>
-
-            <!-- Dropdown / Accordion List -->
-            <div class="space-y-3">
-                <div v-for="(item, index) in guides" :key="index"
-                    class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <button @click="toggle(index)"
-                        class="w-full flex justify-between items-center p-4 text-left focus:outline-none transition-colors hover:bg-gray-50">
-                        <span class="font-semibold text-gray-700">{{ item.title }}</span>
-                        <!-- Ikon Panah -->
-                        <svg :class="{ 'rotate-180': item.isOpen }"
-                            class="w-5 h-5 text-gray-400 transition-transform duration-300" fill="none"
-                            stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-
-                    <!-- Isi Definisi -->
-                    <transition enter-active-class="transition-[max-height,opacity] duration-300 ease-in-out"
-                        leave-active-class="transition-[max-height,opacity] duration-300 ease-in-out">
-                        <div v-show="item.isOpen"
-                            class="p-4 text-sm text-gray-600 bg-blue-50/30 border-t border-gray-100 leading-relaxed">
-                            {{ item.content }}
-                        </div>
-                    </transition>
-                </div>
-            </div>
+  <div class="flex flex-col gap-4">
+    
+    <!-- Top Header Card -->
+    <div class="p-4 bg-gradient-to-r from-[#191932] to-[#202042] border border-[#6366f1]/30 rounded-2xl shadow-md space-y-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-[#e6f7f5]">Panduan & Glosarium Financial</h2>
+          <p class="text-xs text-[#c7d2fe] mt-0.5">Penjelasan istilah penting keuangan usaha & cara membacanya.</p>
         </div>
+        <div class="w-10 h-10 rounded-xl bg-[#6366f1]/20 border border-[#6366f1]/40 flex items-center justify-center text-[#818cf8]">
+          📚
+        </div>
+      </div>
+
+      <!-- Quick Search Filter -->
+      <div class="relative flex items-center">
+        <svg class="w-4 h-4 absolute left-3 text-[#818cf8] pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari istilah (HPP, Omset, Laba Bersih...)"
+          class="w-full pl-9 pr-3 py-2 text-xs text-[#e6f7f5] placeholder-[#aab3d6]/60 bg-[#0a2024] border border-[#6366f1]/30 rounded-xl focus:outline-none focus:border-[#818cf8] transition-all shadow-inner"
+        />
+        <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-3 text-[#aab3d6]">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
+
+    <!-- Accordion List -->
+    <div class="space-y-2.5">
+      <div 
+        v-for="(item, index) in filteredGuides" 
+        :key="index"
+        class="bg-[#122c30] border border-[#14b8a6]/30 rounded-2xl overflow-hidden transition-all shadow-sm"
+      >
+        <button 
+          @click="toggle(index)"
+          class="w-full flex justify-between items-center p-4 text-left focus:outline-none transition-colors hover:bg-[#16363b]"
+        >
+          <span class="font-bold text-sm text-[#e6f7f5] flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#2dd4bf]"></span>
+            {{ item.title }}
+          </span>
+          
+          <svg 
+            :class="{ 'rotate-180 text-[#2dd4bf]': item.isOpen }"
+            class="w-5 h-5 text-[#87c2ba] transition-transform duration-300 shrink-0" 
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <!-- Expanded Definition Box -->
+        <div 
+          v-show="item.isOpen"
+          class="p-4 text-xs text-[#95cfc7] bg-[#0a2024] border-t border-[#14b8a6]/20 leading-relaxed"
+        >
+          {{ item.content }}
+        </div>
+      </div>
+
+      <div v-if="filteredGuides.length === 0" class="p-8 text-center bg-[#0d272b]/60 border border-dashed border-[#14b8a6]/30 rounded-2xl">
+        <p class="text-xs text-[#87c2ba]">Istilah tidak ditemukan. Coba cari kata kunci lain.</p>
+      </div>
+    </div>
+
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+
+const searchQuery = ref('');
 
 const guides = ref([
     {
@@ -51,12 +93,12 @@ const guides = ref([
         isOpen: false
     },
     {
-        title: 'Biaya Admin',
+        title: 'Biaya Admin & Gaji',
         content: 'Biaya yang berkaitan dengan manajemen dan administrasi bisnis sehari-hari. Contoh pengeluaran ini meliputi gaji staf admin, alat tulis kantor (ATK), biaya internet, dan biaya administrasi bank.',
         isOpen: false
     },
     {
-        title: 'Biaya Sewa',
+        title: 'Biaya Sewa Tempat',
         content: 'Biaya tetap yang dibayarkan secara berkala untuk penggunaan properti atau fasilitas fisik. Contohnya adalah biaya sewa ruko, gudang, kantor, atau peralatan untuk kegiatan usaha.',
         isOpen: false
     },
@@ -71,7 +113,7 @@ const guides = ref([
         isOpen: false
     },
     {
-        title: 'Biaya Pajak',
+        title: 'Biaya Pajak Usaha',
         content: 'Kewajiban finansial yang harus disetorkan ke negara dari hasil usahamu. Untuk pengusaha atau UMKM, biasanya berupa Pajak Penghasilan (PPh) Final. Pastikan selalu disisihkan dari awal agar tidak mengganggu arus kas bisnis nanti.',
         isOpen: false
     },
@@ -92,20 +134,26 @@ const guides = ref([
     },
     {
         title: 'Laba Bersih (Net Profit)',
-        content: 'Nah, ini dia cuan atau keuntungan murni yang benar-benar masuk kantong Anda! Angka ini didapat dari Laba Kotor yang sudah dikurangi dengan Total Biaya lainnya seperti pemasaran, admin, dan lain-lain.',
+        content: 'Keuntungan murni yang benar-benar masuk kantong Anda! Angka ini didapat dari Laba Kotor yang sudah dikurangi dengan Total Biaya operasional lainnya.',
         isOpen: false
     },
     {
         title: 'Laporan Laba Rugi',
-        content: 'Laporan keuangan yang menyajikan ringkasan pendapatan, biaya, dan pengeluaran perusahaan dalam suatu periode tertentu. Laporan ini berfungsi untuk menunjukkan apakah bisnis Anda sedang menghasilkan keuntungan (laba) atau mengalami kerugian.',
+        content: 'Laporan keuangan yang menyajikan ringkasan pendapatan, biaya, dan pengeluaran perusahaan dalam suatu periode tertentu untuk menunjukkan apakah bisnis Anda menghasilkan keuntungan atau mengalami kerugian.',
         isOpen: false
     }
 ]);
 
-// Fungsi untuk membuka/menutup dropdown accordion
-const toggle = (index) => {
-    guides.value.forEach((g, i) => { if (i !== index) g.isOpen = false });
+const filteredGuides = computed(() => {
+  if (!searchQuery.value) return guides.value;
+  const q = searchQuery.value.toLowerCase();
+  return guides.value.filter(g => 
+    g.title.toLowerCase().includes(q) || g.content.toLowerCase().includes(q)
+  );
+});
 
-    guides.value[index].isOpen = !guides.value[index].isOpen;
+const toggle = (index) => {
+    filteredGuides.value.forEach((g, i) => { if (i !== index) g.isOpen = false });
+    filteredGuides.value[index].isOpen = !filteredGuides.value[index].isOpen;
 };
 </script>

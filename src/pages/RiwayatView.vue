@@ -1,103 +1,91 @@
 <template>
-  <div
-    class="min-h-screen bg-gradient-to-r from-green-400 via-green-500 to-green-600 text-white p-6 flex flex-col items-center"
-  >
-    <div class="w-full max-w-md mt-6">
-      <h2 class="text-3xl font-bold text-center text-white mb-8">
-        Riwayat Penjualan
-      </h2>
-
-      <div
-        v-if="Object.keys(groupedRiwayat).length === 0"
-        class="text-center mt-10"
-      >
-        Belum ada riwayat penjualan.
+  <div class="flex flex-col gap-4">
+    
+    <!-- Top Header -->
+    <div class="p-4 bg-gradient-to-r from-[#0d2a2e] to-[#13343a] border border-[#14b8a6]/30 rounded-2xl shadow-md flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-bold text-[#e6f7f5]">Riwayat Penjualan Kasir</h2>
+        <p class="text-xs text-[#95cfc7] mt-0.5">Histori transaksi lengkap terkelompok per bulan</p>
       </div>
+      <div class="w-10 h-10 rounded-xl bg-[#f59e0b]/20 border border-[#f59e0b]/40 flex items-center justify-center text-[#fbbf24]">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+    </div>
 
-      <div v-else class="space-y-8">
-        <div v-for="(transaksiList, bulan) in groupedRiwayat" :key="bulan">
-          <h3
-            class="text-xl font-bold text-green-100 mb-4 border-b border-green-500/50 pb-2"
-          >
+    <!-- Empty State -->
+    <div
+      v-if="Object.keys(groupedRiwayat).length === 0"
+      class="p-8 text-center bg-[#0d272b]/60 border border-dashed border-[#14b8a6]/30 rounded-2xl"
+    >
+      <p class="text-sm font-semibold text-[#95cfc7]">Belum Ada Riwayat Penjualan</p>
+      <p class="text-xs text-[#6bb0a6] mt-1">Lakukan transaksi pertama di Kasir Pintar untuk mencatat histori.</p>
+    </div>
+
+    <!-- Monthly Grouped Transactions -->
+    <div v-else class="space-y-6">
+      <div v-for="(transaksiList, bulan) in groupedRiwayat" :key="bulan" class="space-y-3">
+        
+        <!-- Month Badge Header -->
+        <div class="flex items-center justify-between pb-1 border-b border-[#14b8a6]/30">
+          <h3 class="text-sm font-extrabold text-[#2dd4bf] uppercase tracking-wider flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-[#f59e0b]"></span>
             {{ formatBulan(bulan) }}
           </h3>
+          <span class="text-[11px] font-semibold text-[#95cfc7] bg-[#133035] px-2.5 py-0.5 rounded-full border border-[#14b8a6]/20">
+            {{ transaksiList.length }} Transaksi
+          </span>
+        </div>
 
-          <div class="space-y-4">
-            <div
-              v-for="trx in transaksiList"
-              :key="trx.id"
-              class="p-4 bg-green-900/40 backdrop-blur-sm rounded-2xl border border-green-500/30 shadow-lg"
-            >
-              <div class="flex justify-between items-center mb-3">
-                <span class="text-sm text-gray-200">{{
-                  formatTanggal(trx.tanggal)
-                }}</span>
-                <span class="text-xs font-mono text-cyan-200"
-                  >Trx #{{ trx.id }}</span
-                >
-              </div>
+        <!-- Transactions Cards in Month -->
+        <div class="space-y-3">
+          <div
+            v-for="trx in transaksiList"
+            :key="trx.id"
+            class="p-4 bg-[#122c30] border border-[#14b8a6]/30 rounded-2xl shadow-sm hover:border-[#2dd4bf]/40 transition-all flex flex-col gap-2.5"
+          >
+            <!-- Transaction Header info -->
+            <div class="flex justify-between items-center pb-2 border-b border-[#14b8a6]/20">
+              <span class="text-xs text-[#95cfc7] font-medium">{{ formatTanggal(trx.tanggal) }}</span>
+              <RouterLink :to="`/receipt?id=${trx.id}`" class="text-[11px] font-mono text-[#06b6d4] bg-[#06b6d4]/15 px-2 py-0.5 rounded border border-[#06b6d4]/30 hover:bg-[#06b6d4]/30">
+                Nota #{{ trx.id }}
+              </RouterLink>
+            </div>
 
-              <div class="space-y-2 mb-4">
-                <div
-                  v-for="item in trx.items"
-                  :key="item.id"
-                  class="flex justify-between text-sm"
-                >
-                  <span class="text-white"
-                    >{{ item.nama }} (x{{ item.scanQty }})</span
-                  >
-                  <span class="text-gray-200"
-                    >Rp
-                    {{
-                      (item.harga * item.scanQty).toLocaleString("id-ID")
-                    }}</span
-                  >
-                </div>
-              </div>
-
+            <!-- Items Purchased -->
+            <div class="space-y-1.5 py-1">
               <div
-                class="pt-3 border-t border-green-500/30 flex flex-col gap-1"
+                v-for="item in trx.items"
+                :key="item.id"
+                class="flex justify-between items-center text-xs"
               >
-                <div class="flex justify-between font-bold">
-                  <span class="text-white">Total Omzet:</span>
-                  <span class="text-cyan-400"
-                    >Rp {{ trx.totalPenjualan.toLocaleString("id-ID") }}</span
-                  >
-                </div>
-                <div class="flex justify-between text-sm">
-                  <span class="text-green-200">Keuntungan:</span>
-                  <span class="text-green-400"
-                    >Rp {{ trx.totalKeuntungan.toLocaleString("id-ID") }}</span
-                  >
-                </div>
+                <span class="text-[#e6f7f5] font-medium">
+                  {{ item.nama }} <span class="text-[#2dd4bf] font-bold">(x{{ item.scanQty || item.quantity || 1 }})</span>
+                </span>
+                <span class="text-[#95cfc7] font-mono">
+                  Rp {{ (item.harga * (item.scanQty || item.quantity || 1)).toLocaleString("id-ID") }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Financial Totals -->
+            <div class="pt-2 border-t border-[#14b8a6]/20 flex flex-col gap-1 text-xs">
+              <div class="flex justify-between items-center font-bold">
+                <span class="text-[#e6f7f5]">Total Omzet:</span>
+                <span class="text-[#67e8f9] text-sm">Rp {{ trx.totalPenjualan.toLocaleString("id-ID") }}</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-[#87c2ba]">Keuntungan Murni:</span>
+                <span class="text-[#34d399] font-bold">Rp {{ trx.totalKeuntungan.toLocaleString("id-ID") }}</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <RouterLink to="/" class="inline-flex mt-8 mb-8">
-        <button
-          class="px-5 py-2.5 rounded-full font-semibold text-sm bg-green-900/40 backdrop-blur-sm border border-cyan-500/40 text-white shadow-[0_0_10px_rgba(6,182,212,0.2)] hover:shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:bg-cyan-500/20 hover:-translate-y-0.5 transition-all duration-300 active:scale-95 flex justify-center items-center gap-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-4 h-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
-          Kembali ke Menu Utama
-        </button>
-      </RouterLink>
+      </div>
     </div>
+
   </div>
 </template>
 
@@ -112,7 +100,6 @@ onMounted(async () => {
   riwayat.value = await loadRiwayat();
 });
 
-// Group data by bulanTahun
 const groupedRiwayat = computed(() => {
   const groups = {};
   riwayat.value.forEach((trx) => {
